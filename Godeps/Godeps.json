@@ -1,0 +1,45 @@
+{
+	"ImportPath": "github.com/elodina/go-zipkin",
+	"GoVersion": "go1.3.3",
+	"Deps": [
+		{
+			"ImportPath": "git.apache.org/thrift.git/lib/go/thrift",
+			"Rev": "517aa1491b1e16c88d17d6d83dcc7ef83bc85164"
+		},
+		{
+			"ImportPath": "github.com/cihub/seelog",
+			"Comment": "go1.1-51-g92dc4b8",
+			"Rev": "92dc4b8b540607b8187cc2f95cac200211dcd745"
+		},
+		{
+			"ImportPath": "github.com/jimlawless/cfg",
+			"Rev": "8cf9686de5a8b290717494297d381948feffe19f"
+		},
+		{
+			"ImportPath": "github.com/spacemonkeygo/errors",
+			"Rev": "286e1478efd6811d6771ee8e23c29317bc2ec899"
+		},
+		{
+			"ImportPath": "github.com/spacemonkeygo/monotime",
+			"Rev": "1aa76eb50f468f130ac4779d63f82b3fa81e7510"
+		},
+		{
+			"ImportPath": "github.com/spacemonkeygo/spacelog",
+			"Rev": "ae95ccc1eb0c8ce2496c43177430efd61930f7e4"
+		},
+		{
+			"ImportPath": "github.com/stealthly/siesta",
+			"Comment": "v0.1.0.0-47-g5b8a407",
+			"Rev": "5b8a407d4c1a00c5acbb75f204c41be94c74acf8"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context",
+			"Rev": "cbcac7bb8415db9b6cb4d1ebab1dc9afbd688b97"
+		},
+		{
+			"ImportPath": "gopkg.in/spacemonkeygo/monitor.v1/trace",
+			"Comment": "v1.1",
+			"Rev": "bcb789fcf097ffde9c41b5c1b5afe7d8f7ee7a26"
+		}
+	]
+}

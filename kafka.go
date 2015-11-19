@@ -1,15 +1,13 @@
-package ztrace
+package zipkin
 
 import (
-	"github.com/stealthly/siesta"
-	"gopkg.in/spacemonkeygo/monitor.v1/trace/gen-go/zipkin"
-	"git.apache.org/thrift.git/lib/go/thrift"
-	"time"
-	"fmt"
+	"github.com/elodina/go-zipkin/Godeps/_workspace/src/git.apache.org/thrift.git/lib/go/thrift"
+	"github.com/elodina/go-zipkin/Godeps/_workspace/src/github.com/stealthly/siesta"
+	"github.com/elodina/go-zipkin/Godeps/_workspace/src/gopkg.in/spacemonkeygo/monitor.v1/trace/gen-go/zipkin"
 )
 
 type KafkaCollector struct {
-	producer siesta.KafkaProducer
+	producer *siesta.KafkaProducer
 	topic    string
 }
 
@@ -18,22 +16,11 @@ func (c KafkaCollector) Collect(s *zipkin.Span) {
 	p := thrift.NewTBinaryProtocolTransport(t)
 	err := s.Write(p)
 	if err != nil {
-		fmt.Println("error occurred: ", err)
+		Logger.Warn("Couldn't serialize span: ", err)
 		return
 	}
 
-	println("sending traces")
-	recordMetadata := c.producer.Send(&siesta.ProducerRecord{Topic: c.topic, Value: t.Buffer.Bytes()})
-
-	select {
-	case x := <-recordMetadata:
-		if (x.Error != siesta.ErrNoError) {
-			fmt.Println("error occurred: ", x.Error)
-		}
-		println("sent span")
-	case <-time.After(5 * time.Second):
-	    // TODO: not sure on timeout duration?
-		println("timeout exceeded")
-	}
-
+	// TODO: latter version of Siesta provides channel to hook up on which streams sending results, so need to use that.
+	// But first, will need to update libraries which will use go-zipkin to using latter Siesta as well
+	c.producer.Send(&siesta.ProducerRecord{Topic: c.topic, Value: t.Buffer.Bytes()})
 }
