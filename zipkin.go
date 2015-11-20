@@ -75,8 +75,8 @@ func (t *Tracer) InitServer(spanName string, r trace.Request) context.Context {
 	return ctx
 }
 
-func (t *Tracer) TraceClient(ctx context.Context, spanName string) func(*error) {
-	return t.manager.TraceWithSpanNamed(&ctx, spanName)
+func (t *Tracer) TraceClient(ctx *context.Context, spanName string) func(*error) {
+	return t.manager.TraceWithSpanNamed(ctx, spanName)
 }
 
 func (t *Tracer) TraceClientSent(ctx context.Context, spanName string) {
