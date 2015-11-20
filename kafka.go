@@ -2,6 +2,7 @@ package zipkin
 
 import (
 	"github.com/elodina/go-zipkin/Godeps/_workspace/src/git.apache.org/thrift.git/lib/go/thrift"
+	"github.com/elodina/go-zipkin/Godeps/_workspace/src/github.com/elodina/pyrgus/log"
 	"github.com/elodina/go-zipkin/Godeps/_workspace/src/github.com/stealthly/siesta"
 	"github.com/elodina/go-zipkin/Godeps/_workspace/src/gopkg.in/spacemonkeygo/monitor.v1/trace/gen-go/zipkin"
 )
@@ -16,7 +17,7 @@ func (c KafkaCollector) Collect(s *zipkin.Span) {
 	p := thrift.NewTBinaryProtocolTransport(t)
 	err := s.Write(p)
 	if err != nil {
-		Logger.Warn("Couldn't serialize span: ", err)
+		log.Logger.Warn("Couldn't serialize span: ", err)
 		return
 	}
 
