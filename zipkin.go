@@ -1,11 +1,11 @@
 package zipkin
 
 import (
-	"github.com/elodina/go-zipkin/Godeps/_workspace/src/github.com/spacemonkeygo/monotime"
-	"github.com/elodina/go-zipkin/Godeps/_workspace/src/github.com/stealthly/siesta"
-	"github.com/elodina/go-zipkin/Godeps/_workspace/src/golang.org/x/net/context"
-	"github.com/elodina/go-zipkin/Godeps/_workspace/src/gopkg.in/spacemonkeygo/monitor.v1/trace"
-	"github.com/elodina/go-zipkin/Godeps/_workspace/src/gopkg.in/spacemonkeygo/monitor.v1/trace/gen-go/zipkin"
+	"github.com/spacemonkeygo/monotime"
+	"github.com/stealthly/siesta"
+	"golang.org/x/net/context"
+	"gopkg.in/spacemonkeygo/monitor.v1/trace"
+	"gopkg.in/spacemonkeygo/monitor.v1/trace/gen-go/zipkin"
 	"time"
 )
 

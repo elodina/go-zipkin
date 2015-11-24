@@ -1,10 +1,10 @@
 package zipkin
 
 import (
-	"github.com/elodina/go-zipkin/Godeps/_workspace/src/git.apache.org/thrift.git/lib/go/thrift"
-	"github.com/elodina/go-zipkin/Godeps/_workspace/src/github.com/elodina/pyrgus/log"
-	"github.com/elodina/go-zipkin/Godeps/_workspace/src/github.com/stealthly/siesta"
-	"github.com/elodina/go-zipkin/Godeps/_workspace/src/gopkg.in/spacemonkeygo/monitor.v1/trace/gen-go/zipkin"
+	"github.com/stealthly/siesta"
+	"gopkg.in/spacemonkeygo/monitor.v1/trace/gen-go/zipkin"
+	"git.apache.org/thrift.git/lib/go/thrift"
+	"github.com/elodina/pyrgus/log"
 )
 
 type KafkaCollector struct {
