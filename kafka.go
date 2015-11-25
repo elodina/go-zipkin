@@ -19,7 +19,7 @@ import (
 	"github.com/stealthly/siesta"
 	"gopkg.in/spacemonkeygo/monitor.v1/trace/gen-go/zipkin"
 	"git.apache.org/thrift.git/lib/go/thrift"
-	"github.com/elodina/pyrgus/log"
+	"github.com/elodina/go-zipkin/log"
 )
 
 type KafkaCollector struct {

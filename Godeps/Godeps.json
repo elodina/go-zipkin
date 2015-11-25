@@ -12,10 +12,6 @@
 			"Rev": "92dc4b8b540607b8187cc2f95cac200211dcd745"
 		},
 		{
-			"ImportPath": "github.com/elodina/pyrgus/log",
-			"Rev": "a8f6e4a60d7f48dadc19bff157fe105270b87749"
-		},
-		{
 			"ImportPath": "github.com/jimlawless/cfg",
 			"Rev": "8cf9686de5a8b290717494297d381948feffe19f"
 		},
