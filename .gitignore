@@ -26,3 +26,6 @@ _testmain.go
 #IDEA
 *.iml
 /.idea
+
+#Godep
+Godeps/_workspace
