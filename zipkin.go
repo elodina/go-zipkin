@@ -122,3 +122,8 @@ func (t *Tracer) createContextFromRequest(spanName string, r trace.Request) cont
 	span := t.manager.NewSpanFromRequest(spanName, r)
 	return trace.ContextWithSpan(context.Background(), span)
 }
+
+func SampledSpanInfo(ctx context.Context) (s *trace.Span, ok bool) {
+	currentSpan, ok := trace.SpanFromContext(ctx)
+	return currentSpan, ok && !currentSpan.TraceDisabled()
+}

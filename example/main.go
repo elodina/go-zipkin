@@ -108,8 +108,12 @@ func onEvent(j int) {
 
 func sendRPC(ctx context.Context) {
 	// This adds client send annotation right away, and adds client receive annotation on defer
-	defer fractionalTracer.TraceClient(ctx, "rpc_call")(nil)
+	defer fractionalTracer.TraceClient(&ctx, "rpc_call")(nil)
 
+	if spanInfo, ok := zipkin.SampledSpanInfo(ctx); ok {
+		fmt.Print("Span info to send:")
+		fmt.Println(spanInfo)
+	}
 	time.Sleep(50 * time.Millisecond)
 }
 
