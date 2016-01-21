@@ -1,4 +1,4 @@
-# Zipkin Mesos Framework for Go
+# Zipkin library for Go
 
 Initial implementation of Zipkin tracing library for Go. Specifically created for collecting Zipkin spans using 
 Kafka as a transport. Based on Spacemonkey Monitor: https://github.com/spacemonkeygo/monitor. Relies on using Google 
