@@ -38,10 +38,10 @@ func main() {
 	kafkaProducerConfig.ClientID = "go-zipkin"
 
 	// For most cases you'll need only one tracer per app, but we'll showcase how to create several of them.
-	samplerTraceConfig := zipkin.NewTraceConfig("some_service", 1.0, []string{"broker-70.service.cluster2:31250"})
+	samplerTraceConfig := zipkin.NewTraceConfig("some_service", 1.0, []string{"slave0:31001"})
 	samplerTraceConfig.KafkaProducerConfig = kafkaProducerConfig
 
-	fractionalTraceConfig := zipkin.NewTraceConfig("some_service", 0.5, []string{"broker-70.service.cluster2:31250"})
+	fractionalTraceConfig := zipkin.NewTraceConfig("some_service", 0.5, []string{"slave0:31001"})
 	fractionalTraceConfig.KafkaProducerConfig = kafkaProducerConfig
 
 	samplerTracer = initTracer(samplerTraceConfig)
