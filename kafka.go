@@ -16,15 +16,15 @@ limitations under the License. */
 package zipkin
 
 import (
-	"github.com/stealthly/siesta"
-	"gopkg.in/spacemonkeygo/monitor.v1/trace/gen-go/zipkin"
 	"git.apache.org/thrift.git/lib/go/thrift"
 	"github.com/elodina/go-zipkin/log"
+	producer "github.com/elodina/siesta-producer"
+	"gopkg.in/spacemonkeygo/monitor.v1/trace/gen-go/zipkin"
 )
 
 type KafkaCollector struct {
-	producer *siesta.KafkaProducer
-	topic    string
+	kafkaProducer *producer.KafkaProducer
+	topic         string
 }
 
 func (c KafkaCollector) Collect(s *zipkin.Span) {
@@ -37,5 +37,5 @@ func (c KafkaCollector) Collect(s *zipkin.Span) {
 	}
 
 	// TODO: latter version of Siesta provides channel to hook up on which streams sending results, so need to use that.
-	c.producer.Send(&siesta.ProducerRecord{Topic: c.topic, Value: t.Buffer.Bytes()})
+	c.kafkaProducer.Send(&producer.ProducerRecord{Topic: c.topic, Value: t.Buffer.Bytes()})
 }

@@ -16,12 +16,12 @@ limitations under the License. */
 package zipkin
 
 import (
+	"github.com/elodina/siesta"
+	producer "github.com/elodina/siesta-producer"
 	"github.com/spacemonkeygo/monotime"
-	"github.com/stealthly/siesta"
 	"golang.org/x/net/context"
 	"gopkg.in/spacemonkeygo/monitor.v1/trace"
 	"gopkg.in/spacemonkeygo/monitor.v1/trace/gen-go/zipkin"
-	"time"
 )
 
 type TraceConfig struct {
@@ -31,7 +31,7 @@ type TraceConfig struct {
 	Topic               string
 	Ip                  int32
 	Port                int16
-	KafkaProducerConfig *siesta.ProducerConfig
+	KafkaProducerConfig *producer.ProducerConfig
 }
 
 type Tracer struct {
@@ -40,6 +40,9 @@ type Tracer struct {
 }
 
 func NewTraceConfig(serviceName string, sampleRate float64, brokerList []string) *TraceConfig {
+	producerConfig := producer.NewProducerConfig()
+	producerConfig.BatchSize = 200
+	producerConfig.ClientID = "zipkin"
 	return &TraceConfig{
 		serviceName,
 		sampleRate,
@@ -47,18 +50,7 @@ func NewTraceConfig(serviceName string, sampleRate float64, brokerList []string)
 		"zipkin",
 		127*256*256*256 + 1, // TODO: should find out actual local IP by default
 		0,
-		&siesta.ProducerConfig{
-			BatchSize:       200,
-			ClientID:        "go-zipkin",
-			MaxRequests:     10,
-			SendRoutines:    10,
-			ReceiveRoutines: 10,
-			ReadTimeout:     5 * time.Second,
-			WriteTimeout:    5 * time.Second,
-			RequiredAcks:    1,
-			AckTimeoutMs:    2000,
-			Linger:          5 * time.Second,
-		},
+		producerConfig,
 	}
 }
 
@@ -66,14 +58,13 @@ func NewTracer(config *TraceConfig) (*Tracer, error) {
 	producerConfig := config.KafkaProducerConfig
 	kafkaConnectorConfig := siesta.NewConnectorConfig()
 	kafkaConnectorConfig.BrokerList = config.BrokerList
-	siesta.NewDefaultConnector(kafkaConnectorConfig)
 	connector, err := siesta.NewDefaultConnector(kafkaConnectorConfig)
 	if err != nil {
 		return nil, err
 	}
-	producer := siesta.NewKafkaProducer(producerConfig, siesta.ByteSerializer, siesta.ByteSerializer, connector)
+	kafkaProducer := producer.NewKafkaProducer(producerConfig, producer.ByteSerializer, producer.ByteSerializer, connector)
 
-	tracer := &Tracer{trace.NewSpanManager(), &KafkaCollector{producer, config.Topic}}
+	tracer := &Tracer{trace.NewSpanManager(), &KafkaCollector{kafkaProducer, config.Topic}}
 	tracer.manager.Configure(config.SampleRate, false, &zipkin.Endpoint{
 		Ipv4:        config.Ip,
 		Port:        config.Port,
