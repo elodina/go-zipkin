@@ -16,42 +16,32 @@ limitations under the License. */
 package main
 
 import (
+	"fmt"
+	"github.com/elodina/go-zipkin"
+	producer "github.com/elodina/siesta-producer"
 	"golang.org/x/net/context"
 	"gopkg.in/spacemonkeygo/monitor.v1/trace"
-	"github.com/elodina/go-zipkin"
-	"time"
-	"github.com/stealthly/siesta"
-	"fmt"
 	z "gopkg.in/spacemonkeygo/monitor.v1/trace/gen-go/zipkin"
+	"time"
 )
 
 var (
-	samplerTracer *zipkin.Tracer
+	samplerTracer    *zipkin.Tracer
 	fractionalTracer *zipkin.Tracer
 )
-
 
 func main() {
 
 	// We want kind of a simpler Kafka default config for a sample application
-	kafkaProducerConfig := &siesta.ProducerConfig{
-		BatchSize:       1,
-		ClientID:        "go-zipkin",
-		MaxRequests:     10,
-		SendRoutines:    10,
-		ReceiveRoutines: 10,
-		ReadTimeout:     5 * time.Second,
-		WriteTimeout:    5 * time.Second,
-		RequiredAcks:    1,
-		AckTimeoutMs:    2000,
-		Linger:          1 * time.Second,
-	}
+	kafkaProducerConfig := producer.NewProducerConfig()
+	kafkaProducerConfig.BatchSize = 1
+	kafkaProducerConfig.ClientID = "go-zipkin"
 
 	// For most cases you'll need only one tracer per app, but we'll showcase how to create several of them.
-	samplerTraceConfig := zipkin.NewTraceConfig("some_service", 1.0, []string{"slave0:31001"})
+	samplerTraceConfig := zipkin.NewTraceConfig("some_service", 1.0, []string{"broker-70.service.cluster2:31250"})
 	samplerTraceConfig.KafkaProducerConfig = kafkaProducerConfig
 
-	fractionalTraceConfig := zipkin.NewTraceConfig("some_service", 0.5, []string{"slave0:31001"})
+	fractionalTraceConfig := zipkin.NewTraceConfig("some_service", 0.5, []string{"broker-70.service.cluster2:31250"})
 	fractionalTraceConfig.KafkaProducerConfig = kafkaProducerConfig
 
 	samplerTracer = initTracer(samplerTraceConfig)
@@ -63,7 +53,7 @@ func main() {
 
 	// Here we should get ~5 traces in a span storage, as the sample rate set to 0.5
 	for j := 0; j <= 9; j++ {
-	  onEvent(j)
+		onEvent(j)
 	}
 
 	// Just giving some time for a Kafka producer to grab and send messages further
@@ -72,7 +62,7 @@ func main() {
 
 func initTracer(config *zipkin.TraceConfig) *zipkin.Tracer {
 	tracer, err := zipkin.NewTracer(config)
-	if (err != nil) {
+	if err != nil {
 		panic(err)
 	}
 	return tracer
