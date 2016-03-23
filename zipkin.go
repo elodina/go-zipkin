@@ -24,7 +24,10 @@ import (
 	"gopkg.in/spacemonkeygo/monitor.v1/trace/gen-go/zipkin"
 )
 
+var localhost int32 = 127*256*256*256 + 1
+
 type TraceConfig struct {
+	KafkaProducer       *producer.KafkaProducer
 	ServiceName         string
 	SampleRate          float64
 	BrokerList          []string
@@ -39,30 +42,46 @@ type Tracer struct {
 	collector *KafkaCollector
 }
 
+func NewTraceConfigWithProducer(serviceName string, samplaRate float64, kafkaProducer *producer.KafkaProducer) *TraceConfig {
+	return &TraceConfig{
+		KafkaProducer: kafkaProducer,
+		ServiceName:   serviceName,
+		SampleRate:    samplaRate,
+		Topic:         "zipkin",
+		Ip:            localhost,
+		Port:          0,
+	}
+}
+
 func NewTraceConfig(serviceName string, sampleRate float64, brokerList []string) *TraceConfig {
 	producerConfig := producer.NewProducerConfig()
 	producerConfig.BatchSize = 200
 	producerConfig.ClientID = "zipkin"
 	return &TraceConfig{
-		serviceName,
-		sampleRate,
-		brokerList,
-		"zipkin",
-		127*256*256*256 + 1, // TODO: should find out actual local IP by default
-		0,
-		producerConfig,
+		ServiceName:         serviceName,
+		SampleRate:          sampleRate,
+		BrokerList:          brokerList,
+		Topic:               "zipkin",
+		Ip:                  localhost, // TODO: should find out actual local IP by default
+		Port:                0,
+		KafkaProducerConfig: producerConfig,
 	}
 }
 
 func NewTracer(config *TraceConfig) (*Tracer, error) {
-	producerConfig := config.KafkaProducerConfig
-	kafkaConnectorConfig := siesta.NewConnectorConfig()
-	kafkaConnectorConfig.BrokerList = config.BrokerList
-	connector, err := siesta.NewDefaultConnector(kafkaConnectorConfig)
-	if err != nil {
-		return nil, err
+	var kafkaProducer *producer.KafkaProducer
+	if config.KafkaProducer != nil {
+		kafkaProducer = config.KafkaProducer
+	} else {
+		producerConfig := config.KafkaProducerConfig
+		kafkaConnectorConfig := siesta.NewConnectorConfig()
+		kafkaConnectorConfig.BrokerList = config.BrokerList
+		connector, err := siesta.NewDefaultConnector(kafkaConnectorConfig)
+		if err != nil {
+			return nil, err
+		}
+		kafkaProducer = producer.NewKafkaProducer(producerConfig, producer.ByteSerializer, producer.ByteSerializer, connector)
 	}
-	kafkaProducer := producer.NewKafkaProducer(producerConfig, producer.ByteSerializer, producer.ByteSerializer, connector)
 
 	tracer := &Tracer{trace.NewSpanManager(), &KafkaCollector{kafkaProducer, config.Topic}}
 	tracer.manager.Configure(config.SampleRate, false, &zipkin.Endpoint{
