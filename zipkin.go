@@ -1,139 +1,166 @@
-/* Licensed to Elodina Inc. under one or more
-contributor license agreements.  See the NOTICE file distributed with
-this work for additional information regarding copyright ownership.
-The ASF licenses this file to You under the Apache License, Version 2.0
-(the "License"); you may not use this file except in compliance with
-the License.  You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License. */
-
 package zipkin
 
 import (
-	"github.com/elodina/siesta"
-	producer "github.com/elodina/siesta-producer"
-	"github.com/spacemonkeygo/monotime"
-	"golang.org/x/net/context"
-	"gopkg.in/spacemonkeygo/monitor.v1/trace"
-	"gopkg.in/spacemonkeygo/monitor.v1/trace/gen-go/zipkin"
+	"math/rand"
+	"sync"
+	"time"
+
+	"github.com/elodina/go-zipkin/gen-go/zipkincore"
+	"github.com/elodina/siesta-producer"
+	"github.com/yanzay/log"
 )
 
 var localhost int32 = 127*256*256*256 + 1
 
-type TraceConfig struct {
-	KafkaProducer       *producer.KafkaProducer
-	ServiceName         string
-	SampleRate          float64
-	BrokerList          []string
-	Topic               string
-	Ip                  int32
-	Port                int16
-	KafkaProducerConfig *producer.ProducerConfig
+type Collector interface {
+	Collect([]byte)
 }
 
 type Tracer struct {
-	manager   *trace.SpanManager
-	collector *KafkaCollector
+	collector Collector
+	host      string
+	name      string
+	rate      int
 }
 
-func NewTraceConfigWithProducer(serviceName string, samplaRate float64, kafkaProducer *producer.KafkaProducer) *TraceConfig {
-	return &TraceConfig{
-		KafkaProducer: kafkaProducer,
-		ServiceName:   serviceName,
-		SampleRate:    samplaRate,
-		Topic:         "zipkin",
-		Ip:            localhost,
-		Port:          0,
+func NewTracer(name string, host string, rate int, producer *producer.KafkaProducer) *Tracer {
+	log.Infof("[Zipkin] Creating new tracer for service %s with rate 1:%d", name, rate)
+	collector := &KafkaCollector{producer: producer}
+	tracer := &Tracer{host: host, collector: collector, rate: rate, name: name}
+	return tracer
+}
+
+func (t *Tracer) NewSpan(name string) *Span {
+	log.Infof("[Zipkin] Creating new span: %s", name)
+	sampled := rand.Intn(t.rate) == 0
+	if !sampled {
+		return &Span{sampled: false}
 	}
+	span := newSpan(name, newID(), nil, t.name)
+	span.collector = t.collector
+	span.sampled = true
+	return span
 }
 
-func NewTraceConfig(serviceName string, sampleRate float64, brokerList []string) *TraceConfig {
-	producerConfig := producer.NewProducerConfig()
-	producerConfig.BatchSize = 200
-	producerConfig.ClientID = "zipkin"
-	return &TraceConfig{
-		ServiceName:         serviceName,
-		SampleRate:          sampleRate,
-		BrokerList:          brokerList,
-		Topic:               "zipkin",
-		Ip:                  localhost, // TODO: should find out actual local IP by default
-		Port:                0,
-		KafkaProducerConfig: producerConfig,
-	}
+type Span struct {
+	sync.Mutex
+	span        *zipkincore.Span
+	collector   Collector
+	children    []*Span
+	sampled     bool
+	serviceName string
 }
 
-func NewTracer(config *TraceConfig) (*Tracer, error) {
-	var kafkaProducer *producer.KafkaProducer
-	if config.KafkaProducer != nil {
-		kafkaProducer = config.KafkaProducer
-	} else {
-		producerConfig := config.KafkaProducerConfig
-		kafkaConnectorConfig := siesta.NewConnectorConfig()
-		kafkaConnectorConfig.BrokerList = config.BrokerList
-		connector, err := siesta.NewDefaultConnector(kafkaConnectorConfig)
-		if err != nil {
-			return nil, err
-		}
-		kafkaProducer = producer.NewKafkaProducer(producerConfig, producer.ByteSerializer, producer.ByteSerializer, connector)
+func newSpan(name string, traceID int64, parentID *int64, serviceName string) *Span {
+	zipkinSpan := &zipkincore.Span{
+		Name:              name,
+		ID:                newID(),
+		TraceID:           traceID,
+		ParentID:          parentID,
+		Annotations:       make([]*zipkincore.Annotation, 0),
+		BinaryAnnotations: make([]*zipkincore.BinaryAnnotation, 0),
 	}
 
-	tracer := &Tracer{trace.NewSpanManager(), &KafkaCollector{kafkaProducer, config.Topic}}
-	tracer.manager.Configure(config.SampleRate, false, &zipkin.Endpoint{
-		Ipv4:        config.Ip,
-		Port:        config.Port,
-		ServiceName: config.ServiceName})
-	tracer.manager.RegisterTraceCollector(tracer.collector)
-	return tracer, nil
+	return &Span{span: zipkinSpan, serviceName: serviceName}
 }
 
-func (t *Tracer) InitServer(spanName string, r trace.Request) context.Context {
-	ctx := t.createContextFromRequest(spanName, r)
-
-	Annotate(ctx, zipkin.SERVER_RECV)
-
-	return ctx
+func (s *Span) Sampled() bool {
+	return s.sampled
 }
 
-func (t *Tracer) TraceClient(ctx *context.Context, spanName string) func(*error) {
-	return t.manager.TraceWithSpanNamed(ctx, spanName)
+func (s *Span) TraceID() int64 {
+	return s.span.TraceID
 }
 
-func (t *Tracer) TraceClientSent(ctx context.Context, spanName string) {
-	t.manager.TraceWithSpanNamed(&ctx, spanName)
-	t.CollectFromContext(ctx)
+func (s *Span) ParentID() *int64 {
+	return s.span.ParentID
 }
 
-func Annotate(ctx context.Context, v string) {
-	if span, ok := trace.SpanFromContext(ctx); ok {
-		span.AnnotateTimestamp(v, monotime.Now(), nil, nil)
+func (s *Span) ID() int64 {
+	return s.span.ID
+}
+
+func (s *Span) ServerReceive() {
+	log.Infof("[Zipkin] ServerReceive")
+	s.Annotate(zipkincore.SERVER_RECV)
+}
+
+func (s *Span) ServerSend() {
+	log.Infof("[Zipkin] ServerSend")
+	s.Annotate(zipkincore.SERVER_SEND)
+}
+
+func (s *Span) ServerSendAndCollect() {
+	s.ServerSend()
+	s.send()
+}
+
+func (s *Span) ClientSend() {
+	log.Infof("[Zipkin] ClientSend")
+	s.Annotate(zipkincore.CLIENT_SEND)
+}
+
+func (s *Span) ClientReceive() {
+	log.Infof("[Zipkin] ClientReceive")
+	s.Annotate(zipkincore.CLIENT_RECV)
+}
+
+func (s *Span) ClientReceiveAndCollect() {
+	s.ClientReceive()
+	s.send()
+}
+
+func (s *Span) NewChild(name string) *Span {
+	log.Infof("[Zipkin] Creating new child span: %s", name)
+	if !s.sampled {
+		return &Span{}
 	}
+	child := newSpan(name, s.span.TraceID, &s.span.ID, s.serviceName)
+	child.collector = s.collector
+	s.Lock()
+	s.children = append(s.children, child)
+	s.Unlock()
+	return child
 }
 
-func (t *Tracer) Collect(s *trace.Span) {
-	if !s.TraceDisabled() {
-		data := s.Export()
-		t.collector.Collect(data)
+func (s *Span) send() error {
+	log.Infof("[Zipkin] Sending spans: %b", s.sampled)
+	if !s.sampled {
+		return nil
 	}
-}
-
-func (t *Tracer) CollectFromContext(ctx context.Context) {
-	if span, ok := trace.SpanFromContext(ctx); ok {
-		t.Collect(span)
+	log.Infof("[Zipkin] Serializing span: %v", s.span)
+	bytes, err := SerializeSpan(s.span)
+	if err != nil {
+		return err
 	}
+	s.collector.Collect(bytes)
+	return nil
 }
 
-func (t *Tracer) createContextFromRequest(spanName string, r trace.Request) context.Context {
-	span := t.manager.NewSpanFromRequest(spanName, r)
-	return trace.ContextWithSpan(context.Background(), span)
+func (s *Span) Annotate(value string) {
+	if !s.sampled {
+		return
+	}
+	now := nowMicrosecond()
+	annotation := &zipkincore.Annotation{
+		Value:     value,
+		Timestamp: *now,
+		Host: &zipkincore.Endpoint{
+			ServiceName: s.serviceName,
+			Ipv4:        localhost,
+			Port:        0,
+		},
+	}
+	s.Lock()
+	s.span.Annotations = append(s.span.Annotations, annotation)
+	s.Unlock()
 }
 
-func SampledSpanInfo(ctx context.Context) (s *trace.Span, ok bool) {
-	currentSpan, ok := trace.SpanFromContext(ctx)
-	return currentSpan, ok && !currentSpan.TraceDisabled()
+func nowMicrosecond() *int64 {
+	now := time.Now().UnixNano() / 1000
+	return &now
+}
+
+func newID() int64 {
+	return rand.Int63()
 }
