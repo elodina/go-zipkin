@@ -31,10 +31,12 @@ type Tracer struct {
 }
 
 func NewTracer(serviceName string, rate int, producer *producer.KafkaProducer, ip string, port int16, topic string) *Tracer {
-	log.Infof("[Zipkin] Creating new tracer for service %s with rate 1:%d and topic %s", serviceName, rate, topic)
+	log.Infof("[Zipkin] Creating new tracer for service %s with rate 1:%d, topic %s, ip %s, port %d", serviceName, rate,
+		topic, ip, port)
 	collector := &KafkaCollector{producer: producer, topic: topic}
 
-	convertedIp, err := convertIp(ip); if (err != nil) {
+	convertedIp, err := convertIp(ip); if err != nil {
+		log.Warningf("Given ip %s is not a valid ipv4 ip address, going with localhost ip")
 		convertedIp = &localhost
 	}
 
@@ -80,10 +82,10 @@ func DefaultProducer(brokerList []string) (*producer.KafkaProducer, error) {
 
 func LocalNetworkIP() string {
 	ip, err := determineLocalIp()
-	if err != nil {
+	if err == nil {
 		return ip
 	} else {
-		log.Infof("Unable to determine local network IP address, going with localhost IP")
+		log.Warningf("Unable to determine local network IP address, going with localhost IP")
 		return "127.0.0.1"
 	}
 }
