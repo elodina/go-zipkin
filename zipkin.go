@@ -282,7 +282,7 @@ func (t *Tracer) NewSpanFromRequest(name string, traceId *int64, spanId *int64, 
 	}
 
 	log.Debugf("[Zipkin] Creating new span %s from request: traceID %s, spanID %s, parentID %s, sampled %s", name,
-	)
+	traceId, spanId, parentId, sampled)
 	span := newSpan(name, *traceId, *spanId, nil, t.serviceName)
 	span.collector = t.collector
 	span.port = t.port
