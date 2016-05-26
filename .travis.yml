@@ -9,6 +9,11 @@ go:
   - tip
 
 install:
+  - go get git.apache.org/thrift.git/lib/go/thrift
+  - go get github.com/elodina/go-avro
+  - go get github.com/elodina/siesta
+  - go get github.com/elodina/siesta-producer
+  - go get github.com/yanzay/log
   - go build -v
 
 script: go test -v ./...
