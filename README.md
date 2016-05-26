@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/elodina/go-zipkin.svg?branch=master)](https://travis-ci.org/elodina/go-zipkin)
+
 # Zipkin library for Go
 
 This library focus is to provide maximum flexibility for creating [Zipkin](http://zipkin.io) traces inside the distributed application.
