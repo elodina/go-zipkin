@@ -1,0 +1,27 @@
+{
+  "type": "record",
+  "name": "TraceInfo",
+  "fields": [
+    {
+      "name": "spanId",
+      "type": "long"
+    },
+    {
+      "name": "traceId",
+      "type": "long"
+    },
+    {
+      "name": "parentSpanId",
+      "default": null,
+      "type": [
+        "null",
+        "long"
+      ]
+    },
+    {
+      "name": "sampled",
+      "default": false,
+      "type": "boolean"
+    }
+  ]
+}
